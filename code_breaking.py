@@ -433,10 +433,3 @@ def decrypt_cipher_reflector_scrambled(encrypted_text, crib, enigma_config):
                     e.rotors[-1].left_pins = reflector_option
                     potential_configs.append((str(cnf), reflector_option, e.encode_string(encrypted_text)))
     return potential_configs
-
-
-#print(len(permutate_rotor_wiring("EJMZALYXVBWFCRQUONTSPIKHGD", 2)))
-print(permutate_reflector_by_wire_swap("DCBAHEGF", 2))
-# print(len(permutate_reflector_by_wire_swap("DCBAHJIEGF", 2)))
-#print(possible_crib_positions("DMEXBMKYCVPNQBEDHXVPZGKMTFFBJRPJTLHLCHOTKOYXGGHZ", "SECRETS"))
-

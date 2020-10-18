@@ -58,7 +58,14 @@ def test_code_breaking():
     assert(code_breaking.decrypt_cipher("DMEXBMKYCVPNQBEDHXVPZGKMTFFBJRPJTLHLCHOTKOYXGGHZ",
                    "SECRETS",
                    '? Beta-Gamma-V 4-2-14 M-J-M KI-XN-FL')
-           == [('C Beta-Gamma-V 4-2-14 M-J-M KI-XN-FL', 'NICEWORKYOUVEMANAGEDTODECODETHEFIRSTSECRETSTRING')])
+           == [('C Beta-Gamma-V 4-2-14 M-J-M KI-XN-FL',
+                'NICEWORKYOUVEMANAGEDTODECODETHEFIRSTSECRETSTRING')])
+    
+    assert(code_breaking.decrypt_cipher("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
+                   "UNIVERSITY",
+                   'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS')
+            == [('B Beta-I-III 23-2-10 I-M-G VH-PT-ZG-BJ-EY-FS',
+                 'IHOPEYOUAREENJOYINGTHEUNIVERSITYOFBATHEXPERIENCESOFAR')])
 
     assert(code_breaking.decrypt_cipher("BUPXWJCDPFASXBDHLBBIBSRNWCSZXQOLBNXYAXVHOGCUUIBCVMPUZYUUKHI",
                    "CONGRATULATIONS",
