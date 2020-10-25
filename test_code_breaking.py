@@ -2,8 +2,6 @@ import pytest
 import code_breaking
 
 def test_missing_information():
-    encrypted_text = "ABSKJAKKMRITTNYURBJFWQGRSGNNYJSDRYLAPQWIAGKJYEPCTAGDCTHLCDRZRFZHKNRSDLNPFPEBVESHPY"
-    cribs = "THOUSANDS,HUNDREDS"
 
     # enigma configuration is partially known:
     enigma_config = 'C III-?-["II","I"]-V [4,5,6]-24-?-7 ABGZ-?-Q-F AQ-?S-ED-["ZU","ZF","ZK"]'

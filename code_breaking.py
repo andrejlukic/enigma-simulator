@@ -1,6 +1,7 @@
 import itertools
 import time # for measuring time to break the code
 import multiprocessing as mp
+import random
 from enigma import *
 
 def all_enigma_settings_candidates(config_string):
@@ -168,7 +169,7 @@ def all_possible_settings(config_string):
     return enigma_configurations
 
 
-def decrypt_cipher(encrypted_text, crib, config_string):
+def decrypt_cipher(encrypted_text, crib, config_string, sample_size = 500):
     """Attempt to break Enigma cypher with a known crib and partially known config
 
     Example input:
@@ -207,24 +208,17 @@ def decrypt_cipher(encrypted_text, crib, config_string):
     crib_positions = possible_crib_positions(encrypted_text, crib)
 
     # Loop through all potential Enigma settings and try to decrypt the crib:
-    potential_configs = []
+    configs_to_check = []
     for pos in crib_positions:
         for cnf in enigma_configs:
-            enigma_instance = Enigma(cnf)
-            # in case the crib is not at the beginning of the text rotate Enigma
-            # forward to find the correct rotor positions
-            enigma_instance.rotate_n_steps(pos)
-            potential_config = True
-            for inx in range(len(crib)):
-                if enigma_instance.encode_character(crib[inx]) != encrypted_text[pos + inx]:
-                    # if any character does not match this Enigma setting can be discarded
-                    # and further decryption can be stopped
-                    potential_config = False
-                    break
-            if potential_config:
-                # all characters of the crib could be encoded correctly
-                potential_configs.append((str(cnf), Enigma(cnf).encode_string(encrypted_text)))
-    return potential_configs
+            configs_to_check.append((cnf,pos))
+
+    result = check_enigma_config(configs_to_check,
+                                 crib,
+                                 encrypted_text,
+                                 sample_size)
+
+    return result
 
 def possible_crib_positions(encrypted_text, crib):
     """Exclude impossible crib positions.
@@ -442,7 +436,18 @@ def decrypt_cipher_reflector_scrambled(encrypted_text, crib, enigma_config):
 #
 #
 
-def check_enigma_config(enigma_config_list, crib, encrypted_text):
+def check_enigma_config(enigma_config_list, crib, encrypted_text, sample = None):
+
+    random.shuffle(enigma_config_list)
+
+    if len(enigma_config_list) < 10000:
+        sample = None # turn off time estimates for tiny searches
+
+    #if not sample:
+    #    print("{0} enigma configs to search".format(len(enigma_config_list)))
+
+    count_tested = 0
+    time_start = time.time()
     potential_configs = []
     for enigma_config in enigma_config_list:
         cnf = enigma_config[0]
@@ -465,13 +470,26 @@ def check_enigma_config(enigma_config_list, crib, encrypted_text):
                 break
         if potential_config:
             # all characters of the crib could be encoded correctly
-            print("Potential config")
             e = Enigma(cnf)
             if reflector_hack:
                 e.rotors[-1].left_pins = reflector_hack
-                potential_configs.append((str(cnf), reflector_hack, e.encode_string(encrypted_text)))
+                result = (str(cnf), reflector_hack, e.encode_string(encrypted_text))
+                potential_configs.append(result)
+                print(result)
             else:
-                potential_configs.append((str(cnf), e.encode_string(encrypted_text)))
+                result = (str(cnf), e.encode_string(encrypted_text))
+                potential_configs.append(result)
+                print(result)
+        count_tested += 1
+
+        if sample and count_tested == sample:
+            sample_time = time.time() - time_start
+            time_pred = ((len(enigma_config_list) / sample)*sample_time) - sample_time
+            print("Between {0:.2f} and {1:.2f} seconds left to search remaining {2} Enigma settings"
+                  .format(time_pred-0.03*time_pred,time_pred+0.03*time_pred, len(enigma_config_list)-count_tested))
+    if sample:
+        end = time.time() - time_start
+        print("Finished in {0:.2f} seconds needed".format(end))
     return potential_configs
 
 
@@ -609,7 +627,7 @@ def test_perf_multiproc():
     # a group of Enigma configurations to try out. Several chunk sizes
     # are tested to determine what the ideal size of a chunk is
 
-    for chunk_size in range(1, 101, 50):
+    for chunk_size in range(50, 100, 50):
         start = time.time()
         print(decrypt_cipher_multiproc("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
                            "UNIVERSITY",
@@ -618,15 +636,15 @@ def test_perf_multiproc():
         results.append(end-start)
         print("Time to process with chunk size {0}={1}".format( chunk_size, end - start))
 
-    print(results)
+    #print(results)
 
     # Run in a single process:
-    start = time.time()
-    print(decrypt_cipher("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
-                           "UNIVERSITY",
-                           'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS'))
-    end = time.time()
-    print(end - start)
+    #start = time.time()
+    #print(decrypt_cipher("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
+    #                           "UNIVERSITY",
+    #                       'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS'))
+    #end = time.time()
+    #print(end - start)
 
 def test_perf_multiproc2():
     results = []
@@ -680,4 +698,4 @@ def test_perf_multiproc5():
     end = time.time()
     print(end - start)
 
-#test_perf_multiproc()
+test_perf_multiproc()
