@@ -1,4 +1,6 @@
 import itertools
+import time # for measuring time to break the code
+import multiprocessing as mp
 from enigma import *
 
 def all_enigma_settings_candidates(config_string):
@@ -433,3 +435,249 @@ def decrypt_cipher_reflector_scrambled(encrypted_text, crib, enigma_config):
                     e.rotors[-1].left_pins = reflector_option
                     potential_configs.append((str(cnf), reflector_option, e.encode_string(encrypted_text)))
     return potential_configs
+
+#
+#
+#   ------ Multiprocessing Implementation - using all CPU cores
+#
+#
+
+def check_enigma_config(enigma_config_list, crib, encrypted_text):
+    potential_configs = []
+    for enigma_config in enigma_config_list:
+        cnf = enigma_config[0]
+        pos = enigma_config[1]
+        reflector_hack = None
+        if len(enigma_config) == 3:
+            reflector_hack = enigma_config[2]
+        enigma_instance = Enigma(cnf)
+        # in case the crib is not at the beginning of the text rotate Enigma
+        # forward to find the correct rotor positions
+        if reflector_hack:
+            enigma_instance.rotors[-1].left_pins = reflector_hack
+        enigma_instance.rotate_n_steps(pos)
+        potential_config = True
+        for inx in range(len(crib)):
+            if enigma_instance.encode_character(crib[inx]) != encrypted_text[pos + inx]:
+                # if any character does not match this Enigma setting can be discarded
+                # and further decryption can be stopped
+                potential_config = False
+                break
+        if potential_config:
+            # all characters of the crib could be encoded correctly
+            print("Potential config")
+            e = Enigma(cnf)
+            if reflector_hack:
+                e.rotors[-1].left_pins = reflector_hack
+                potential_configs.append((str(cnf), reflector_hack, e.encode_string(encrypted_text)))
+            else:
+                potential_configs.append((str(cnf), e.encode_string(encrypted_text)))
+    return potential_configs
+
+
+def decrypt_cipher_multiproc(encrypted_text, crib, config_string, batch_size):
+    """Attempt to break Enigma cypher with a known crib and partially known config
+    using multiple processor cores
+
+    Example input:
+       encrypted_text:
+       ABSKJAKKMRITTNYURBJFWQGRSGNNYJSDRYLAPQWIAGKJYEPCTAGDCTHLCDRZRFZHKNRSDLNPFPEBVESHPY
+       cribs: THOUSANDS
+       enigma_config
+       C III-?-["II","I"]-V [4,5,6]-24-?-7 ABGZ-?-Q-F AQ-?S-ED-["ZU","ZF","ZK"]
+
+    To understand how to specify the partially known or unknown Enigma config
+    read the description of the all_enigma_settings_candidates() function.
+
+    After all possible Enigma settings are constructed each setting is tried on a crib
+    until such Enigma setting is found that the complete crib matches the encoded text.
+    Such Enigma setting is put on a list of possible candidates along with the decrypted
+    text. A human must then go through this list to decide if any of the potential settings
+    are correct.
+
+    :param encrypted_text:
+    :param crib:
+    :param config_string:
+    :return:
+    """
+
+    if encrypted_text is None or len(encrypted_text) < len(crib):
+        raise ValueError('Expected some code to break.')
+    if not crib:
+        raise ValueError('Expected a crib.')
+
+    # Construct all possible Enigma settings based on unknown / partially known
+    # Enigma configuration provided:
+    enigma_configs = all_possible_settings(config_string)
+    # Slide the crib under the encrypted text and determine all positions in
+    # which the letter of the crib does not match the encrypted text
+    # (Enigma can never encode a letter into itself)
+    crib_positions = possible_crib_positions(encrypted_text, crib)
+
+    # Loop through all potential Enigma settings and try to decrypt the crib:
+    potential_configs = []
+    pool = mp.Pool(mp.cpu_count())
+    batch_count = 0
+    batch = []
+    batches_count = 0
+    results = []
+    for pos in crib_positions:
+        for cnf in enigma_configs:
+            batch.append((cnf,pos))
+            batch_count += 1
+            if batch_count >= batch_size:
+                batches_count += 1
+                results.append(pool.apply_async(check_enigma_config, args=(batch, crib, encrypted_text)))
+                batch_count = 0
+                batch = []
+    for r in results:
+        potential_configs = list(itertools.chain(potential_configs, r.get()))
+
+    print("Processes: ", pool._processes)
+    print("Batch size: ", batch_size)
+    print("Batches: ", batches_count)
+    pool.close()
+    return [cnf for cnf in potential_configs if cnf]
+
+def decrypt_cipher_reflector_scrambled_multiproc(encrypted_text, crib, enigma_config, chunk_size):
+    """Attempt to break Enigma cypher with a known crib and a reflector that
+    had been hacked (2 wires in the reflector were swapped)
+
+    Example input:
+       encrypted_text:
+       HWREISXLGTTBYVXRCWWJAKZDTVZWKBDJPVQYNEQIOTIFX
+       cribs: INSTAGRAM
+       enigma_config
+       "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT"
+
+    To understand how to specify the partially known or unknown Enigma config
+    read the description of the all_enigma_settings_candidates() function.
+
+    After all possible Enigma settings are constructed additionally all possible
+    permutations of every possible reflector is added. Every reflector has been
+    meddled with by swapping two wires (4 pairs changed). Details on how these
+    permutations were constructed in docstring here:
+        permutate_reflector_by_wire_swap()
+
+    Every Enigma setting with every possible reflector permutation will be tried
+    until the encoded crib matches the encoded text. Such Enigma setting is put
+    on a list of possible candidates along with the decrypted text. A human must
+    then go through this list to decide if any of the potential settings are
+    correct.
+
+    :param encrypted_text:
+    :param crib:
+    :param config_string:
+    :return:
+    """
+
+    crib_positions = possible_crib_positions(encrypted_text, crib)
+    enigma_configs = all_possible_settings(enigma_config)
+    print("Found {0} possible positions of the crib and {1} possible Enigma configurations".format(len(crib_positions), len(enigma_configs)))
+
+    pool = mp.Pool(mp.cpu_count())
+    chunk = []
+    chunks_count = 0
+    configs_count = 0
+    results = []
+    potential_configs = []
+    for cnf in enigma_configs:
+        enigma_instance = Enigma(cnf)
+        l = permutate_reflector_by_wire_swap("".join(enigma_instance.rotors[-1].left_pins), 2)
+        print("Checking enigma config={0} with {1} reflector wirings".format(enigma_instance.print_state(), len(l)))
+        for pos in crib_positions:
+            for reflector_option in l:
+                chunk.append((cnf, pos, reflector_option))
+                configs_count += 1
+                if configs_count >= chunk_size:
+                    chunks_count += 1
+                    results.append(pool.apply_async(check_enigma_config, args=(chunk, crib, encrypted_text)))
+                    configs_count = 0
+                    chunk = []
+    for r in results:
+        potential_configs = list(itertools.chain(potential_configs, r.get()))
+
+    print("Processes: ", pool._processes)
+    print("Chunk size: ", chunk_size)
+    print("Chunks: ", chunks_count)
+    pool.close()
+    return [cnf for cnf in potential_configs if cnf]
+
+def test_perf_multiproc():
+    results = []
+    # run in 8 processes and split problem into chunks. Each chunk is
+    # a group of Enigma configurations to try out. Several chunk sizes
+    # are tested to determine what the ideal size of a chunk is
+
+    for chunk_size in range(1, 101, 50):
+        start = time.time()
+        print(decrypt_cipher_multiproc("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
+                           "UNIVERSITY",
+                           'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS', chunk_size))
+        end = time.time()
+        results.append(end-start)
+        print("Time to process with chunk size {0}={1}".format( chunk_size, end - start))
+
+    print(results)
+
+    # Run in a single process:
+    start = time.time()
+    print(decrypt_cipher("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
+                           "UNIVERSITY",
+                           'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS'))
+    end = time.time()
+    print(end - start)
+
+def test_perf_multiproc2():
+    results = []
+    # run in 8 processes and split problem into chunks. Each chunk is
+    # a group of Enigma configurations to try out. Several chunk sizes
+    # are tested to determine what the ideal size of a chunk is
+
+    for chunk_size in range(1, 6, 3):
+        start = time.time()
+        print(decrypt_cipher_multiproc("ABSKJAKKMRITTNYURBJFWQGRSGNNYJSDRYLAPQWIAGKJYEPCTAGDCTHLCDRZRFZHKNRSDLNPFPEBVESHPY",
+                                        "THOUSANDS",
+                                        '? ["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"] [2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26] E-M-Y FH-TS-BE-UQ-KD-AL', chunk_size))
+        end = time.time()
+        results.append(end-start)
+        print("Time to process with chunk size {0}={1}".format( chunk_size, end - start))
+
+    print(results)
+
+    # Run in a single process:
+    print("Running in a single process:")
+    start = time.time()
+    print(decrypt_cipher("ABSKJAKKMRITTNYURBJFWQGRSGNNYJSDRYLAPQWIAGKJYEPCTAGDCTHLCDRZRFZHKNRSDLNPFPEBVESHPY",
+                                        "THOUSANDS",
+                                        '? ["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"] [2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26] E-M-Y FH-TS-BE-UQ-KD-AL'))
+    end = time.time()
+    print(end - start)
+
+def test_perf_multiproc5():
+    results = []
+    # run in 8 processes and split problem into chunks. Each chunk is
+    # a group of Enigma configurations to try out. Several chunk sizes
+    # are tested to determine what the ideal size of a chunk is
+    for chunk_size in range(1, 30, 3):
+        #chunk_size = 25
+        start = time.time()
+        print(decrypt_cipher_reflector_scrambled_multiproc("HWREISXLGTTBYVXRCWWJAKZDTVZWKBDJPVQYNEQIOTIFX",
+                                                             "INSTAGRAM",
+                                                             "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT", chunk_size))
+        end = time.time()
+        results.append(end-start)
+        print("Time to process with chunk size {0}={1}".format( chunk_size, end - start))
+
+    print(results)
+
+    # Run in a single process:
+    print("Running in a single process:")
+    start = time.time()
+    print(decrypt_cipher_reflector_scrambled("HWREISXLGTTBYVXRCWWJAKZDTVZWKBDJPVQYNEQIOTIFX",
+                                             "INSTAGRAM",
+                                             "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT"))
+    end = time.time()
+    print(end - start)
+
+#test_perf_multiproc()

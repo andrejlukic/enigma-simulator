@@ -86,3 +86,10 @@ def test_code_breaking():
                                                              "INSTAGRAM",
                                                              "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT")
             == [('B V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT', 'PQUHRSLDYXNGOKMABEFZCWVJIT', 'YOUCANFOLLOWMYDOGONINSTAGRAMATTALESOFHOFFMANN')])
+
+#def test_code_breaking_multiproc():
+#    assert (code_breaking.decrypt_cipher_reflector_scrambled_multiproc("HWREISXLGTTBYVXRCWWJAKZDTVZWKBDJPVQYNEQIOTIFX",
+#                                                             "INSTAGRAM",
+#                                                             "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT", 25)
+#            == [('B V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT', 'PQUHRSLDYXNGOKMABEFZCWVJIT',
+#                 'YOUCANFOLLOWMYDOGONINSTAGRAMATTALESOFHOFFMANN')])
