@@ -1,3 +1,6 @@
+import sys # for the demo
+import argparse # for the demo
+
 class PlugLead:
     """PlugLead represents a connection between two plugs on the plugboard (Steckerbrett)."""
 
@@ -401,3 +404,5 @@ class Enigma:
                                             "-".join(str(r.ring_setting+1) for (r) in self.rotors[-2::-1]),
                                             "-".join(str(self.input_ring[r.position + r.ring_setting]) for r in self.rotors[-2::-1]),
                                             self.plugboard)
+
+

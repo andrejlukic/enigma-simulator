@@ -53,37 +53,48 @@ def test_code_breaking():
                 'CDABFGHEIJ', 'GFHABEDCIJ', 'DCBGHEAFIJ', 'EAFHBCGDIJ', 'HCBEFGDAIJ', 'GCBAEHDFIJ', 'DHFACGEBIJ',
                 'ECBFGDHAIJ', 'CDABEHGFIJ', 'GHFABCDEIJ', 'DGBAEHCFIJ'].sort())
 
+    # Case basic EXAMPLE 2 - CONGRATULATIONS
+    assert (code_breaking.decrypt_cipher("BUPXWJCDPFASXBDHLBBIBSRNWCSZXQOLBNXYAXVHOGCUUIBCVMPUZYUUKHI",
+                                         "CONGRATULATIONS",
+                                         'A IV-V-Beta-I 18-24-3-5 E-Z-G-P PC-XZ-FM-QA-ST-NB-HY-OR-EV-IU')[0]
+            == [('A IV-V-Beta-I 18-24-3-5 E-Z-G-P PC-XZ-FM-QA-ST-NB-HY-OR-EV-IU',
+                 'CONGRATULATIONSONPRODUCINGYOURWORKINGENIGMAMACHINESIMULATOR')])
+
+    # Case 1 - SECRETS
     assert(code_breaking.decrypt_cipher("DMEXBMKYCVPNQBEDHXVPZGKMTFFBJRPJTLHLCHOTKOYXGGHZ",
                    "SECRETS",
-                   '? Beta-Gamma-V 4-2-14 M-J-M KI-XN-FL')
+                   '? Beta-Gamma-V 4-2-14 M-J-M KI-XN-FL')[0]
            == [('C Beta-Gamma-V 4-2-14 M-J-M KI-XN-FL',
                 'NICEWORKYOUVEMANAGEDTODECODETHEFIRSTSECRETSTRING')])
-    
+
+    # Case 2 - UNIVERSITY
     assert(code_breaking.decrypt_cipher("CMFSUPKNCBMUYEQVVDYKLRQZTPUFHSWWAKTUGXMPAMYAFITXIJKMH",
                    "UNIVERSITY",
-                   'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS')
+                   'B Beta-I-III 23-2-10 ?-?-? VH-PT-ZG-BJ-EY-FS')[0]
             == [('B Beta-I-III 23-2-10 I-M-G VH-PT-ZG-BJ-EY-FS',
                  'IHOPEYOUAREENJOYINGTHEUNIVERSITYOFBATHEXPERIENCESOFAR')])
 
-    assert(code_breaking.decrypt_cipher("BUPXWJCDPFASXBDHLBBIBSRNWCSZXQOLBNXYAXVHOGCUUIBCVMPUZYUUKHI",
-                   "CONGRATULATIONS",
-                   'A IV-V-Beta-I 18-24-3-5 E-Z-G-P PC-XZ-FM-QA-ST-NB-HY-OR-EV-IU')
-           == [('A IV-V-Beta-I 18-24-3-5 E-Z-G-P PC-XZ-FM-QA-ST-NB-HY-OR-EV-IU', 'CONGRATULATIONSONPRODUCINGYOURWORKINGENIGMAMACHINESIMULATOR')])
+    # Case 3 - THOUSANDS
+    assert (code_breaking.decrypt_cipher(
+        "ABSKJAKKMRITTNYURBJFWQGRSGNNYJSDRYLAPQWIAGKJYEPCTAGDCTHLCDRZRFZHKNRSDLNPFPEBVESHPY",
+        "THOUSANDS",
+        '? ["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"] [2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26] E-M-Y FH-TS-BE-UQ-KD-AL')[
+                0]
+            == [('C II-Gamma-IV 24-8-20 E-M-Y FH-TS-BE-UQ-KD-AL',
+                 'SQUIRRELSPLANTTHOUSANDSOFNEWTREESEACHYEARBYMERELYFORGETTINGWHERETHEYPUTTHEIRACORNS')])
 
-    assert(code_breaking.decrypt_cipher("ABSKJAKKMRITTNYURBJFWQGRSGNNYJSDRYLAPQWIAGKJYEPCTAGDCTHLCDRZRFZHKNRSDLNPFPEBVESHPY",
-                                        "THOUSANDS",
-                                        '? ["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"]-["II","IV","Beta","Gamma"] [2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26]-[2,4,6,8,20,22,24,26] E-M-Y FH-TS-BE-UQ-KD-AL')
-           == [('C II-Gamma-IV 24-8-20 E-M-Y FH-TS-BE-UQ-KD-AL', 'SQUIRRELSPLANTTHOUSANDSOFNEWTREESEACHYEARBYMERELYFORGETTINGWHERETHEYPUTTHEIRACORNS')])
-
-    assert (('A V-III-IV 24-12-10 S-W-U WP-RJ-TA-VF-KI-HN-CG-BS', 'NOTUTORSWEREHARMEDNORIMPLICATEDOFCRIMESDURINGTHEMAKINGOFTHESEEXAMPLES')
+    # Case 4 - TUTOR
+    assert (('A V-III-IV 24-12-10 S-W-U WP-RJ-TA-VF-KI-HN-CG-BS',
+             'NOTUTORSWEREHARMEDNORIMPLICATEDOFCRIMESDURINGTHEMAKINGOFTHESEEXAMPLES')
             in code_breaking.decrypt_cipher("SDNTVTPHRBNWTLMZTQKZGADDQYPFNHBPNHCQGBGMZPZLUAVGDQVYRBFYYEIXQWVTHXGNW",
-                                 "TUTOR",
-                                 "A V-III-IV 24-12-10 S-W-U WP-RJ-A?-VF-I?-HN-CG-BS"))
+                                            "TUTOR",
+                                            "A V-III-IV 24-12-10 S-W-U WP-RJ-A?-VF-I?-HN-CG-BS")[0])
 
+    # Case 5 -  Scrambled reflector
     assert (code_breaking.decrypt_cipher_reflector_scrambled("HWREISXLGTTBYVXRCWWJAKZDTVZWKBDJPVQYNEQIOTIFX",
                                                              "INSTAGRAM",
-                                                             "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT")
-            == [('B V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT', 'PQUHRSLDYXNGOKMABEFZCWVJIT', 'YOUCANFOLLOWMYDOGONINSTAGRAMATTALESOFHOFFMANN')])
+                                                             "? V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT")[0]
+            == [('B V-II-IV 6-18-7 A-J-L UG-IE-PO-NX-WT', 'YOUCANFOLLOWMYDOGONINSTAGRAMATTALESOFHOFFMANN', 'PQUHRSLDYXNGOKMABEFZCWVJIT')])
 
 #def test_code_breaking_multiproc():
 #    assert (code_breaking.decrypt_cipher_reflector_scrambled_multiproc("HWREISXLGTTBYVXRCWWJAKZDTVZWKBDJPVQYNEQIOTIFX",
