@@ -1,6 +1,5 @@
-# enigma-simulator
+# Enigma simulator and code breaking
 
- - [enigma-simulator](#enigma-simulator)
   * [1. What is Enigma machine](#1-what-is-enigma-machine)
   * [2. Quick start](#2-quick-start)
   * [3. Implementation](#3-implementation)
